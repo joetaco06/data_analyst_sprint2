@@ -4,33 +4,46 @@ from company;
 select * 
 from transaction;
 
+select declined, count(id)
+from transaction 
+group by declined;
+
 # NIVEL 1: -----
 
 #Ejercicio 1:
- # También revisar PDF adjunto.
+ # Revisar PDF adjunto.
 
-#Ejercicio 2:
-# 2.1 - Listado de paises que están haciendo compras. Asumimos que lo más lógico es que no se repitan los países:
+#Ejercicio 1.2:
+# 1.2.1 - Listado de paises que están haciendo compras. Asumimos 2 cosas: (1) Una compra se entiende como una transacción
+# concretada (declined = 0) y (2) Que en el listado no se repitan los países (distinct)
 
 select distinct country from company
+join transaction
+where declined = '0'
 order by country asc;
 
-# 2.2 - Desde cuántos países se realizan compras. (Asumimos que se pide sin repetición).
+# 1.2.2 - Desde cuántos países se realizan compras.
 
-select count(distinct country) from company;
+select count(distinct country) from company
+join transaction
+where declined = '0';
 
-# 2.3 - Compañía con mayor media de ventas:
+# 1.2.3 - Compañía con mayor media de ventas:
 
 select company_id, company_name, avg(amount) as media_ventas
 from transaction
 join company 
 on company.id = transaction.company_id
+where declined = '0'
 group by company_id
 order by avg(amount) desc
 limit 1;
 
-#Ejercicio 3: Subqueries - Utilizar solo subconsultas (no utilizar JOIN)
-# 3.1 - Transacciones realizadas por empresas de Alemania.
+# Ejercicio 3: Subqueries - Utilizar solo subconsultas (no utilizar JOIN). 
+# Con transacción asumimos que se pide tratar todo aquel registro (con id) en la tabla
+# transaction; indistintamente de si fue declinada o no.
+
+# 1.3.1 - Transacciones realizadas por empresas de Alemania. 
 
 select *
 from transaction 
@@ -39,28 +52,31 @@ in (select id
 from company
 where company.country = 'Germany') ;
 
+# 1.3.2 - Lista de empresas que han realizado transacciones por una cantidad superior a la media de todas las transacciones.
 
-# 3.2 - Lista de empresas que han realizado transacciones por una cantidad superior a la media de todas las transacciones.
-
-select distinct company_id, amount
+select company_id, count(amount)
 from transaction
 where amount >= 
 	(select avg(transaction.amount)
-	from transaction);
+	from transaction)
+group by company_id;
+
         
-# 3.3 - Eliminar del sistema las empresas que carecen de transacciones registradas, entregar el listado de tales empresas:
+# Media de transacciones:
+select avg(transaction.amount)
+from transaction;
 
-delete from transaction
-where id is null;
+# 1.3.3 - Eliminar del sistema las empresas que carecen de transacciones registradas, entregar el listado de tales empresas:
 
-
-select *
-from transaction
-where transaction.id is null;
+Select company_name
+from company
+where not exists
+(select distinct company_id
+from transaction);
 
 # NIVEL 2: -----
 
-# Ejercicio 1: Identificar los 5 días que se generó la mayor cantidad de ingresos en la empresa por ventas. Mostrar la
+# Ejercicio 2.1: Identificar los 5 días que se generó la mayor cantidad de ingresos en la empresa por ventas. Mostrar la
 # fecha de cada transacción junto con el total de las ventas.
 
 select sum(transaction.amount) as total_dia, dia
@@ -70,32 +86,34 @@ join
 from transaction
 order by dia ) as table21
 on table21.id = transaction.id
+where declined = '0'
 group by table21.dia
 order by total_dia desc
 limit 5;
 
-#Ejercicio 2: ¿Cuál es la media de ventas por país? Presentar los resultados ordenados de mayor a menor promedio.
+#Ejercicio 2.2: ¿Cuál es la media de ventas por país? Presentar los resultados ordenados de mayor a menor promedio.
 
 select avg(amount) as media_venta, country
 from transaction
 join company on transaction.company_id = company.id
+where declined = '0'
 group by country
 order by media_venta desc;
 
-# Ejercicio 3: En la empresa se presenta un nuevo proyecto para lanzar algunas campañas publicitarias para hacer competencia a 
+# Ejercicio 2.3: En la empresa se presenta un nuevo proyecto para lanzar algunas campañas publicitarias para hacer competencia a 
 # la compañía "Non Institute". Para ello, piden la lista de todas las transacciones realizadas por empresas que están ubicadas
 # en el mismo país que esta compañia. 
 # Mostrar el listado aplicando JOIN y subconsultas. 
 # Mostrar el listado aplicando subconsultas. 
 
-# Usando JOIN:
+# Usando JOIN y subconsultas:
 
 select * 
 from transaction
 join
 (select id
 from company
-where country = 
+where company_name <> 'Non Institute' and country = 
 (select country
 from company
 where company_name = "non institute") and id is not null) as table31
@@ -108,7 +126,7 @@ from transaction
 where company_id 
 in (select id
 from company
-where country = 
+where company_name <> 'Non Institute' and country = 
 (select country
 from company
 where company_name = "non institute") and id is not null);
@@ -116,7 +134,7 @@ where company_name = "non institute") and id is not null);
 
 # NIVEL 3: -----
 
-# Ejercicio 1: 
+# Ejercicio 3.1: 
 
 # Presentar el nombre, teléfono, país, fecha y cantidad de aquellas empresas que realizaron transacciones con un valor 
 # comprendido entre 100 y 200 euros y en alguna de estas fechas: 29 de abril del 2021, 20 de julio del 2021 y 13 de marzo
@@ -133,9 +151,22 @@ on company.id = table311.company_id
 order by amount desc;
 
 
-# Ejercicio 2: 
+# Ejercicio 3.2: 
 
 # Necesitamos optimizar las asignaciones de los recursos y dependerá de la capacidad operativa que se requiera, por lo que
 # nos piden la información sobre la cantidad de transacciones que realizan las empresas, pero el departamento de recursos
-# humanos es exigente y quiere un listado de las empresas donde se especifique si tienen más de 4 o menos transacciones.
+# humanos es exigente y quiere un listado de las empresas donde se especifique si tienen más de 4 o menos transacciones. 
+# Asumimos que: Se pide considerar todas las transacciones, independientemente de si fueron concretadas o no (declined).
+
+select table321.num_transacciones, company_id, company_name, country,
+case 
+	when table321.num_transacciones > 4 THEN 'Más de 4 transacciones'
+    else 'Menos de 4 transacciones'
+end as Cantidad_transacciones
+from (select count(id) as num_transacciones, company_id
+from transaction 
+group by company_id) as table321
+join company 
+on company.id = table321.company_id
+order by num_transacciones;
 
