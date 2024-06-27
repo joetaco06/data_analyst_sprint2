@@ -113,7 +113,7 @@ from transaction
 join
 (select id
 from company
-where company_name <> 'Non Institute' and country = 
+where country = 
 (select country
 from company
 where company_name = "non institute") and id is not null) as table31
@@ -126,11 +126,10 @@ from transaction
 where company_id 
 in (select id
 from company
-where company_name <> 'Non Institute' and country = 
+where country = 
 (select country
 from company
 where company_name = "non institute") and id is not null);
-
 
 # NIVEL 3: -----
 
@@ -140,16 +139,13 @@ where company_name = "non institute") and id is not null);
 # comprendido entre 100 y 200 euros y en alguna de estas fechas: 29 de abril del 2021, 20 de julio del 2021 y 13 de marzo
 # del 2022. Ordenar los resultados de mayor a menor cantidad.
 
-select company_name, phone, country, dia, amount
-from company
-join 
-(select id, company_id, amount, date(timestamp) as dia
-from transaction
+select company_name, phone, country, date(timestamp), amount
+from company c
+join transaction t
+on c.id = t.company_id
 where date(timestamp) in ('2021-04-29', '2021-07-20', '2022-03-13') and
-100 < amount and amount < 200 ) as table311
-on company.id = table311.company_id
+amount between 100 and 200
 order by amount desc;
-
 
 # Ejercicio 3.2: 
 
